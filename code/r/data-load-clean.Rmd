@@ -1,0 +1,89 @@
+---
+title: "Load and clean data with R"
+author: "Max Odsbjerg Pedersen"
+date: "10/5/2020"
+output: html_document
+---
+
+This notebook shows you how to load newspaper text data into a dataframe and how to extract text from a single newspaper into a text file.
+
+First we load the library:
+
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+# Import data
+
+The code below imports data from Library Open Access Repository. Right now it is importing newspapers from 1840. You can change the year by finding a link to another years newspapers. You will find a list over years and their corresponding link containing that years newspaper data on the following link.
+
+<https://datasprint2020.kb.dk/framework/>
+
+When you have found your year of interest, copy the link and paste it in instead of the current link in the code below. Remember to change `artikler_1840` to a name corresponding to the year you chose.
+
+```{r, message=FALSE}
+artikler_1840 <- read_delim("https://loar.kb.dk/rest/bitstreams/ec134001-6c00-4658-95d5-76edd823adb2/retrieve",
+  delim = ",",
+  escape_backslash = TRUE,
+  escape_double = FALSE)
+
+```
+
+## Inspecting the data
+
+It is important before venturing into your data adventure to inspect and evaluate your data to make sure what you are dealing with and if you are dealing with the right thing.
+
+In the code below we inspect the data we imported before with the `head()`-function:
+
+```{r}
+artikler_1840 %>% 
+  head()
+```
+
+## Cleaning the data
+
+The `editionId` column contains various metadata, among others the title of the newspapers. We want to extract the title from this column and store it in a new column. We do this by splitting on the space between the title and the other metadata
+
+```{r, warning=FALSE}
+artikler_1840 <- artikler_1840 %>% 
+  separate(editionId, sep=" ", into = c("title"), remove = FALSE)
+```
+
+The dataframe now has a `title` column:
+
+```{r}
+artikler_1840 %>% 
+  head()
+```
+
+## **Single newspaper text extraction**
+
+Use the following method to extract all text of a specific newspaper from the dataframe into one string of text.
+
+First, use the `count()` method to get a list of available newspaper title IDs.
+
+```{r}
+artikler_1840 %>% 
+  count(title)
+```
+
+Select a newspaper using the filter function. We also use the `arrange()` to make sure that the text rows are chronological. Save this to a new dataframe
+
+```{r}
+artikler_1840 %>%
+  arrange(sort_year_asc) %>% 
+  filter(title == "faedrelandet1834") -> faedrelandet_1840
+```
+
+To combine just the text fields of all rows we select the column containing the text and next we collapse the rows into a single character element
+
+```{r}
+faedrelandet_1840_text <-faedrelandet_1840$fulltext_org %>% 
+  paste(collapse = " ")
+```
+
+Next we save it to a local file:
+
+```{r}
+write_file(faedrelandet_1840_text, "faedrelandet_text.txt")
+```
